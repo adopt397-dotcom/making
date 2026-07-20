@@ -61,12 +61,12 @@ var LANG = {
 // ============================================================
 // B002: API URL 및 전역 변수
 // ============================================================
-var API_URL = "https://script.google.com/macros/s/AKfycbzJ_5tnUjWfYSGIMnzglrB-T8nwhLwKVKUs8Kzvxb8Oe8qhX8N9wEi_wf4m6RYcjQA6/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbzzgsns4UI7rNU81g0P-yThEFztdLg9HW3K_7eFwoi8pDeK1UFn7o6FfDhkT9nKUaGl9g/exec";
 var ORIGINAL_API_URL = API_URL;
 
 var STORAGE_KEY = 'quiz_progress_main';
 var TOTAL_CACHE_KEY = 'quiz_total_questions';
-var QUESTIONS_PER_SET = 120;
+var QUESTIONS_PER_SET = 0;
 var TOTAL_QUESTIONS = 0;
 var masterQuestions = [];
 var currentQuestions = [];
@@ -499,7 +499,7 @@ function showWrongAnswersList() {
     '</p>';
   wrongItems.forEach(function(item) {
     var statusText = item.isSkipped ? LANG.statusSkipped : (item.isUnanswered ? LANG.statusUnanswered : LANG.statusWrong);
-    var statusColor = item.isSkipped ? '#f39c12' : (item.isUnanswered ? '#6c757d' : '#e74c3c');
+    var statusColor = item.isSkipped ? '#f39c' : (item.isUnanswered ? '#6c757d' : '#e74c3c');
     var userAnswerDisplay = (item.ans === null || item.ans === undefined || item.ans === -1) ? '—' : String(item.ans);
     var correctAnswerDisplay = (item.isSubjective) ? (item.q.A || item.q.answer || '—') : getAnswerLetter(item.q.answer);
     if (!item.isSubjective && !item.isSkipped && !item.isUnanswered) {
@@ -512,12 +512,12 @@ function showWrongAnswersList() {
       '<span class="status-badge" style="background:' + statusColor + ';">' + statusText + '</span>' +
       (item.isSubjective ? ' Subjective' : '') +
       '</div>' +
-      '<div style="margin-bottom:12px;"><strong>' + escapeHtml(item.q.question) + '</strong></div>' +
-      '<div style="margin-top:12px;padding:10px;background:#f8f9fa;border-radius:8px;">' +
+      '<div style="margin-bottom:px;"><strong>' + escapeHtml(item.q.question) + '</strong></div>' +
+      '<div style="margin-top:px;padding:10px;background:#f8f9fa;border-radius:8px;">' +
       '<strong>Your answer:</strong> ' + escapeHtml(String(userAnswerDisplay)) +
       '<br><strong>Correct answer:</strong> ' + escapeHtml(String(correctAnswerDisplay)) +
       '</div>' +
-      '<div style="margin-top:12px;padding:10px;background:#e8f4fc;border-radius:8px;">' +
+      '<div style="margin-top:px;padding:10px;background:#e8f4fc;border-radius:8px;">' +
       '<strong>Explanation</strong><br>' + escapeHtml(item.q.explanation || LANG.noExplanation) +
       '</div>' +
       '</div>';
@@ -885,7 +885,7 @@ function showExplanation() {
       '<div style="margin-top:8px;font-size:14px;color:#555;">' +
       'Your answer: <strong>' + escapeHtml(userAns) + '</strong>' +
       '</div>' +
-      '<p style="margin-top:12px;" class="math-content">' + escapeHtml(explanationText) + '</p>';
+      '<p style="margin-top:px;" class="math-content">' + escapeHtml(explanationText) + '</p>';
     DOM.explanationBox.classList.add('show');
     if (window.MathJax && MathJax.typesetPromise) {
       MathJax.typesetPromise([DOM.explanationText]).catch(console.warn);
@@ -916,7 +916,7 @@ function showExplanation() {
     '<div style="margin-top:8px;font-size:14px;color:#555;">' +
     'Your answer: <strong>' + userAnswerLetter + '</strong>' +
     '</div>' +
-    '<p style="margin-top:12px;" class="math-content">' + escapeHtml(explanationText) + '</p>';
+    '<p style="margin-top:px;" class="math-content">' + escapeHtml(explanationText) + '</p>';
   DOM.explanationBox.classList.add('show');
   if (window.MathJax && MathJax.typesetPromise) {
     MathJax.typesetPromise([DOM.explanationText]).catch(console.warn);
