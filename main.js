@@ -5727,3 +5727,77 @@ console.log("✅ ES Module export + window 전역 노출 동시 지원");
 console.log("✅ previewGraphic() 콘솔 미리보기 지원");
 console.log("🌐 EN/KO 전환 지원 · G 그래픽은 영어 원본 고정");
 console.log("📊 v8.0B: Learn / Study / Exam mode engine enabled");
+
+
+
+// ========================================================================
+// BIBLE: Browser speech controls (Chrome/Safari)
+// ========================================================================
+function initBibleSpeechControls() {
+  if (window.__bibleSpeechControlsInstalled) return;
+  window.__bibleSpeechControlsInstalled = true;
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+
+  var wrap = document.createElement('div');
+  wrap.id = 'bibleSpeechControls';
+  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:12000;display:flex;gap:8px;padding:8px;background:rgba(15,23,42,.92);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.25)';
+
+  var readButton = document.createElement('button');
+  readButton.type = 'button';
+  readButton.textContent = '🔊 읽기';
+  readButton.title = '현재 문제와 선택지 읽기';
+  readButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#f5a623;color:#fff;font-weight:800;cursor:pointer';
+
+  var stopButton = document.createElement('button');
+  stopButton.type = 'button';
+  stopButton.textContent = '⏹ 정지';
+  stopButton.title = '음성 읽기 정지';
+  stopButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#475569;color:#fff;font-weight:800;cursor:pointer';
+
+  function stopBibleSpeech() {
+    window.speechSynthesis.cancel();
+  }
+
+  function readCurrentBibleQuestion() {
+    stopBibleSpeech();
+    var container = document.getElementById('questionContainer');
+    var text = container ? String(container.innerText || '').trim() : '';
+    if (!text) {
+      if (typeof showToast === 'function') showToast('읽을 문제가 없습니다.', 'warn');
+      return;
+    }
+    var language = String(window.currentLanguage || currentLanguage || 'EN').toUpperCase();
+    var langCode = language === 'KO' ? 'ko-KR' : 'en-US';
+    var voices = window.speechSynthesis.getVoices();
+    var prefix = langCode.slice(0, 2).toLowerCase();
+    var voice = voices.find(function(item) {
+      return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
+    });
+    var chunks = text.match(/.{1,180}(?:[.!?。！？]s*|$)/g) || [text];
+    chunks.forEach(function(chunk) {
+      var utterance = new SpeechSynthesisUtterance(chunk.trim());
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
+      if (voice) utterance.voice = voice;
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+
+  readButton.addEventListener('click', readCurrentBibleQuestion);
+  stopButton.addEventListener('click', stopBibleSpeech);
+  document.addEventListener('click', function(event) {
+    var id = event.target && event.target.id;
+    if (['prevBtn', 'nextBtn', 'skipBtn', 'submitBtn', 'quitBtn'].indexOf(id) !== -1) stopBibleSpeech();
+  });
+  window.addEventListener('beforeunload', stopBibleSpeech);
+
+  wrap.appendChild(readButton);
+  wrap.appendChild(stopButton);
+  document.body.appendChild(wrap);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBibleSpeechControls);
+} else {
+  initBibleSpeechControls();
+}
