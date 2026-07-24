@@ -5758,6 +5758,29 @@ function initBibleSpeechControls() {
     window.speechSynthesis.cancel();
   }
 
+    function getBibleVoice_(langCode) {
+    var prefix = langCode.slice(0, 2).toLowerCase();
+    return window.speechSynthesis.getVoices().find(function(item) {
+      return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
+    });
+  }
+
+  function splitBibleSpeechSegments_(text) {
+    var segments = [];
+    String(text || '').split(/\n+/).forEach(function(line) {
+      var clean = line.replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+      var hangulCount = (clean.match(/[\u3131-\u318E\uAC00-\uD7A3]/g) || []).length;
+      var latinCount = (clean.match(/[A-Za-z]/g) || []).length;
+      var langCode = hangulCount > 0 && hangulCount >= latinCount * 0.25 ? 'ko-KR' : 'en-US';
+      var chunks = clean.match(/.{1,180}(?:[.!?。！？]\s*|$)/g) || [clean];
+      chunks.forEach(function(chunk) {
+        if (chunk.trim()) segments.push({ text: chunk.trim(), lang: langCode });
+      });
+    });
+    return segments;
+  }
+
   function readCurrentBibleQuestion() {
     stopBibleSpeech();
     var container = document.getElementById('questionContainer');
@@ -5766,23 +5789,19 @@ function initBibleSpeechControls() {
       if (typeof showToast === 'function') showToast('읽을 문제가 없습니다.', 'warn');
       return;
     }
-    var language = String(window.currentLanguage || currentLanguage || 'EN').toUpperCase();
-    var langCode = language === 'KO' ? 'ko-KR' : 'en-US';
-    var voices = window.speechSynthesis.getVoices();
-    var prefix = langCode.slice(0, 2).toLowerCase();
-    var voice = voices.find(function(item) {
-      return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
-    });
-    var chunks = text.match(/.{1,180}(?:[.!?。！？]s*|$)/g) || [text];
-    chunks.forEach(function(chunk) {
-      var utterance = new SpeechSynthesisUtterance(chunk.trim());
-      utterance.lang = langCode;
+
+    var segments = splitBibleSpeechSegments_(text);
+    if (!segments.length) return;
+
+    segments.forEach(function(segment) {
+      var utterance = new SpeechSynthesisUtterance(segment.text);
+      utterance.lang = segment.lang;
       utterance.rate = 0.95;
+      var voice = getBibleVoice_(segment.lang);
       if (voice) utterance.voice = voice;
       window.speechSynthesis.speak(utterance);
     });
   }
-
   readButton.addEventListener('click', readCurrentBibleQuestion);
   stopButton.addEventListener('click', stopBibleSpeech);
   document.addEventListener('click', function(event) {
