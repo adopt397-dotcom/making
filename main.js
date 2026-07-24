@@ -5801,3 +5801,93 @@ if (document.readyState === 'loading') {
 } else {
   initBibleSpeechControls();
 }
+
+
+
+// ========================================================================
+// BIBLE: Chapter catalog selector (BIBLE-CATALOG)
+// ========================================================================
+var BIBLE_CHAPTER_CATALOG = [];
+var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
+var bibleLegacyUpdateSetSelector_ = updateSetSelector;
+
+async function loadBibleChapterCatalog_() {
+  var params = new URLSearchParams();
+  params.set('action', 'catalog');
+  params.set('sheet', DATA_SHEET);
+  params.set('_', String(Date.now()));
+  var response = await fetchQuizApi_(params);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  var data = await response.json();
+  if (data && (data.status === 'error' || data.success === false)) {
+    throwQuizApiError_(data, 'Failed to load Bible catalog');
+  }
+  BIBLE_CHAPTER_CATALOG = Array.isArray(data.catalog) ? data.catalog : [];
+  return BIBLE_CHAPTER_CATALOG;
+}
+
+detectTotalQuestions = async function() {
+  var total = await bibleLegacyDetectTotalQuestions_();
+  if (!IS_TRIAL_USER) {
+    try {
+      await loadBibleChapterCatalog_();
+    } catch (error) {
+      console.warn('Bible catalog unavailable:', error.message);
+      BIBLE_CHAPTER_CATALOG = [];
+    }
+  }
+  return total;
+};
+
+updateSetSelector = function() {
+  if (IS_TRIAL_USER || !Array.isArray(BIBLE_CHAPTER_CATALOG) || !BIBLE_CHAPTER_CATALOG.length) {
+    return bibleLegacyUpdateSetSelector_();
+  }
+  var selector = DOM.setSelector;
+  if (!selector) return;
+  selector.innerHTML = '';
+  var language = String(window.currentLanguage || currentLanguage || 'EN').toUpperCase();
+
+  BIBLE_CHAPTER_CATALOG.forEach(function(chapter, index) {
+    var option = document.createElement('option');
+    var bookName = language === 'KO'
+      ? (chapter.BOOK_KO || chapter.BOOK_EN)
+      : (chapter.BOOK_EN || chapter.BOOK_KO);
+    option.value = String(index + 1);
+    option.dataset.catalog = '1';
+    option.dataset.start = String(chapter.START);
+    option.dataset.limit = String(chapter.QUESTION_COUNT);
+    option.dataset.code = String(chapter.CODE || '');
+    option.textContent = bookName + ' ' + chapter.CHAPTER + (language === 'KO' ? '장' : '') +
+      ' (' + chapter.QUESTION_COUNT + ')';
+    selector.appendChild(option);
+  });
+
+  if (DOM.startNumberInput && !IS_ADMIN_USER) {
+    DOM.startNumberInput.parentElement.style.display = 'none';
+  }
+  var hint = document.querySelector('.card-new .card-hint');
+  if (hint) hint.textContent = language === 'KO' ? '성경책과 장을 선택하세요.' : 'Select a Bible book and chapter.';
+
+  setTimeout(function() {
+    if (!selector.options.length) return;
+    selector.selectedIndex = 0;
+    selector.dispatchEvent(new Event('change', { bubbles: true }));
+  }, 0);
+};
+
+document.addEventListener('change', function(event) {
+  if (!event.target || event.target.id !== 'setSelector') return;
+  var option = event.target.options[event.target.selectedIndex];
+  if (!option || option.dataset.catalog !== '1') return;
+  event.stopImmediatePropagation();
+
+  var start = Math.max(1, parseInt(option.dataset.start, 10) || 1);
+  var limit = Math.max(1, Math.min(parseInt(option.dataset.limit, 10) || 1, 200));
+  QUESTIONS_PER_SET = limit;
+  currentStartNumber = start;
+  if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
+  var title = document.querySelector('.sat-title');
+  if (title) title.textContent = option.textContent;
+  console.log('Bible chapter selected:', option.dataset.code, 'start', start, 'count', limit);
+}, true);
